@@ -13,6 +13,7 @@ private:
     const uint8_t can_id_;
     const MotorType type_;
     const float ratio_;
+    uint8_t *const tx_addr_;
     ControlMethod control_method_;
     PID ppid_, spid_;
 
@@ -30,11 +31,12 @@ private:
 
 public:
     Motor() = delete;
-    explicit Motor(uint8_t can_id, MotorType type, float ratio);
+    explicit Motor(uint8_t __can_id, MotorType __type, float __ratio, uint8_t* __tx_data);
     void set_position(float target_position);
     void set_speed(float target_speed);
     void set_intensity(float intensity);
     float feedforward_intensity_calc(float current_angle);
+    int16_t intensity_to_command() const;
     void parse_can_msg_callback(const uint8_t rx_data[8]);
     void handle();
 };

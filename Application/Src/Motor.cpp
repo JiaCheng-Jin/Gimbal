@@ -1,8 +1,7 @@
 
 #include "Motor.hpp"
-
-#include "Motor.hpp"
 #include "PID.hpp"
+#include "algorithm.hpp"
 #include <can.h>
 #include <cmath>
 
@@ -11,19 +10,12 @@ extern uint8_t tx_data[8];
 extern CAN_TxHeaderTypeDef tx_header;
 bool stop_flag = true;
 
-inline float linear_mapping(float value, float in_min, float in_max, float out_min, float out_max) {
-    return (value - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
-}
 
-template<class T>
-T clamp(const T& value, const T& min, const T& max) {
-    return value < min ? min : (value > max ? max : value);
-}
-
-Motor::Motor(uint8_t can_id, MotorType type, float ratio):
-can_id_(can_id), type_(type),ratio_(ratio), control_method_(ControlMethod::POSITION_SPEED),
+Motor::Motor(uint8_t __can_id, MotorType __type, float __ratio, uint8_t *const __tx_data):
+can_id_(__can_id), type_(__type),ratio_(__ratio), tx_addr_(__tx_data), 
+control_method_(ControlMethod::POSITION_SPEED),
 ppid_(198, 0.4, 57, 30, 3000, 0.05),
-spid_(0.022f, 0, 0.011f, 0, 2, 0.03) {}
+spid_(0.022f, 0, 0.011f, 0, 2.f, 0.03) {}
 
 
 void Motor::parse_can_msg_callback(const uint8_t rx_data[8]) {
@@ -83,7 +75,21 @@ void Motor::set_intensity(float intensity) {
 float Motor::feedforward_intensity_calc(float current_angle) {
     float torque = 0.5f * 9.8 * 0.05524 * cosf((current_angle - 90) * 3.1415 / 180);
     float current = torque / 3 * 8;
-    return current * 16384 / 20;
+    return current;
+}
+
+int16_t Motor::intensity_to_command() const {
+    switch (type_) {
+        case MotorType::M3508: {
+            return clamp<int16_t>(output_intensity_ / 2 * 16384, -16384, 16384);
+        }
+        case MotorType::GM6020: {
+            return clamp<int16_t>(output_intensity_ / 3 * 16384, -16384, 16384);
+        }
+        default: {
+            return 0;
+        }
+    }
 }
 
 void Motor::handle() {
@@ -104,15 +110,20 @@ void Motor::handle() {
             output_intensity_ = spid_.calc(target_speed_, fdb_speed_) + feedforward_intensity_;
         }
     }
-    output_intensity_ = clamp<int16_t>(static_cast<int16_t>(output_intensity_), -16384, 16384);
+    int16_t output_command = intensity_to_command();
     // Protection
-    if (stop_flag || fabsf(fdb_speed_) > 6000) {
-        output_intensity_ = 0;
+    if (stop_flag || fabsf(fdb_speed_) > 4000) {
+        output_command = 0;
     }
     // CAN Message
-    uint8_t high_byte = static_cast<int16_t>(output_intensity_) >> 8;
-    uint8_t low_byte = static_cast<int16_t>(output_intensity_) & 0x00FF;
-    tx_data[0] = tx_data[2] = tx_data[4] = tx_data[6] = high_byte;
-    tx_data[1] = tx_data[3] = tx_data[5] = tx_data[7] = low_byte;
-    HAL_CAN_AddTxMessage(&hcan1, &tx_header, tx_data, &can_tx_mailbox);
+    uint8_t high_byte = output_command >> 8;
+    uint8_t low_byte = output_command & 0x00FF;
+    if (can_id_ < 5) {
+        tx_addr_[2 * can_id_ - 2] = high_byte;
+        tx_addr_[2 * can_id_ - 1] = low_byte;
+    }
+    else {
+        tx_addr_[2 * can_id_ - 10] = high_byte;
+        tx_addr_[2 * can_id_ - 9] = low_byte;
+    }
 }

@@ -3,12 +3,7 @@
 //
 
 #include "PID.hpp"
-#include <algorithm>
-
-template<class T>
-T clamp(const T& value, const T& min, const T& max) {
-    return value < min ? min : (value > max ? max : value);
-}
+#include "algorithm.hpp"
 
 PID::PID(float kp, float ki, float kd, float i_max, float out_max, float d_filter_k) {
     kp_ = kp, ki_ = ki, kd_ = kd;
@@ -35,11 +30,11 @@ float PID::calc(float ref, float fdb) {
 
     // Calculate Output
     pout_ = err_ * kp_;
-    iout_ = std::min<float>(err_sum_ * ki_, i_max_);
+    iout_ = clamp<float>(err_sum_ * ki_, -i_max_, i_max_);
     dout_ = (err_ - last_err_) * kd_;
     // Apply D-Filter
     dout_ = last_dout_ + d_filter_k_ * (dout_ - last_dout_);
 
-    output_ = std::min<float>(out_max_, pout_ + iout_ + dout_);
+    output_ = clamp<float>(pout_ + iout_ + dout_, -out_max_, out_max_);
     return output_;
 }
