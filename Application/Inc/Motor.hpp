@@ -31,7 +31,7 @@ private:
 
 public:
     Motor() = delete;
-    explicit Motor(uint8_t __can_id, MotorType __type, float __ratio, uint8_t* __tx_data);
+    explicit Motor(uint8_t __can_id, MotorType __type, float __ratio, uint8_t* __tx_data, PID&& __ppid, PID&& __spid);
     void set_position(float target_position);
     void set_speed(float target_speed);
     void set_intensity(float intensity);

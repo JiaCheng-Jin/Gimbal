@@ -1,21 +1,17 @@
 
 #include "Motor.hpp"
+#include "../../Algorithm/Inc/algorithm.hpp"
 #include "PID.hpp"
-#include "algorithm.hpp"
 #include <can.h>
 #include <cmath>
 
-extern uint32_t can_tx_mailbox;
-extern uint8_t tx_data[8];
-extern CAN_TxHeaderTypeDef tx_header;
 bool stop_flag = true;
 
-
-Motor::Motor(uint8_t __can_id, MotorType __type, float __ratio, uint8_t *const __tx_data):
+Motor::Motor(uint8_t __can_id, MotorType __type, float __ratio, uint8_t *const __tx_data, PID&& __ppid, PID&& __spid):
 can_id_(__can_id), type_(__type),ratio_(__ratio), tx_addr_(__tx_data), 
 control_method_(ControlMethod::POSITION_SPEED),
-ppid_(198, 0.4, 57, 30, 3000, 0.05),
-spid_(0.022f, 0, 0.011f, 0, 2.f, 0.03) {}
+ppid_(__ppid),
+spid_(__spid) {}
 
 
 void Motor::parse_can_msg_callback(const uint8_t rx_data[8]) {
@@ -112,7 +108,7 @@ void Motor::handle() {
     }
     int16_t output_command = intensity_to_command();
     // Protection
-    if (stop_flag || fabsf(fdb_speed_) > 4000) {
+    if (stop_flag || fabsf(fdb_speed_) > 3000) {
         output_command = 0;
     }
     // CAN Message

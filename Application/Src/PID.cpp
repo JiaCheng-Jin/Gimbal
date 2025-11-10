@@ -3,7 +3,7 @@
 //
 
 #include "PID.hpp"
-#include "algorithm.hpp"
+#include "../../Algorithm/Inc/algorithm.hpp"
 
 PID::PID(float kp, float ki, float kd, float i_max, float out_max, float d_filter_k) {
     kp_ = kp, ki_ = ki, kd_ = kd;

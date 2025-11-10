@@ -34,7 +34,8 @@ message("Build type: " ${CMAKE_BUILD_TYPE})
 enable_language(C ASM)
 
 # Create an executable object type
-add_executable(${CMAKE_PROJECT_NAME})
+add_executable(${CMAKE_PROJECT_NAME}
+        Application/Src/task.cpp)
 
 # Add STM32CubeMX generated sources
 add_subdirectory(cmake/stm32cubemx)
@@ -52,13 +53,14 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
         Application/Src/Controller.cpp
         Application/Src/Motor.cpp
         Application/Src/PID.cpp
-        Application/Src/algorithm.cpp
+        Algorithm/Src/algorithm.cpp
 )
 
 # Add include paths
 target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
     # Add user defined include paths
         Application/Inc
+        Algorithm/Inc
 )
 
 # Add project symbols (macros)
