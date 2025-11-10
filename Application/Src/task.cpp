@@ -3,7 +3,9 @@
 #include "Motor.hpp"
 #include "Controller.hpp"
 #include "can.h"
+#include "imu.h"
 #include "cmsis_os2.h"
+#include "iwdg.h"
 
 extern Controller rc;
 extern bool stop_flag;
@@ -41,6 +43,7 @@ const osThreadAttr_t mainTask_attributes = {
   };
 [[noreturn]] void main_task(void* params) {
     while (true) {
+        HAL_IWDG_Refresh(&hiwdg);
         // 根据遥控器控制电机
         const auto ctrl_frame = rc.data;
         // 急停 + 速度控制
@@ -65,9 +68,27 @@ const osThreadAttr_t mainTask_attributes = {
     }
 }
 
+float r_imu[3][3] = {{1, 0, 0}, {0, 1, 0}, {0, 0, 1}};
+float gyro_bias[3] = {0, 0, 0};
+IMU imu(1, 0.5, 1, r_imu, gyro_bias);
+osThreadId_t imuTaskHandle;
+const osThreadAttr_t imuTask_attributes = {
+    .name = "IMUTask",
+    .stack_size = 256 * 4,
+    .priority = (osPriority_t) osPriorityNormal,
+  };
+
+[[noreturn]] void imu_task(void* params) {
+    while (true) {
+        imu.readSensor();
+        imu.update();
+        osDelay(1);
+    }
+}
 
 void register_tasks() {
     mainTaskHandle = osThreadNew(main_task, nullptr, &mainTask_attributes);
+    imuTaskHandle = osThreadNew(imu_task, nullptr, &imuTask_attributes);
 }
 
 

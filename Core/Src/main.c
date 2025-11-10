@@ -29,7 +29,7 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-#include "BMI088.hpp"
+#include "bmi088.h"
 #include "Controller.hpp"
 /* USER CODE END Includes */
 

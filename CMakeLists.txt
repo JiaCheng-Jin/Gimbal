@@ -35,7 +35,8 @@ enable_language(C ASM)
 
 # Create an executable object type
 add_executable(${CMAKE_PROJECT_NAME}
-        Application/Src/task.cpp)
+        Application/Src/task.cpp
+        Application/Src/imu.cpp)
 
 # Add STM32CubeMX generated sources
 add_subdirectory(cmake/stm32cubemx)
@@ -54,6 +55,8 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
         Application/Src/Motor.cpp
         Application/Src/PID.cpp
         Algorithm/Src/algorithm.cpp
+        Algorithm/Src/matrix.cpp
+        Algorithm/Src/mahony.cpp
 )
 
 # Add include paths
@@ -61,7 +64,7 @@ target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
     # Add user defined include paths
         Application/Inc
         Algorithm/Inc
-)
+        )
 
 # Add project symbols (macros)
 target_compile_definitions(${CMAKE_PROJECT_NAME} PRIVATE

@@ -1,14 +1,14 @@
 
-#include "BMI088.hpp"
+#include "bmi088.h"
 #include "can.h"
 #include "Controller.hpp"
 #include "Motor.hpp"
+#include "imu.h"
 #include <cstring>
 
 uint8_t controller_rx_buffer[32];
 uint8_t can1_rx_buffer[8];
 
-IMU imu;
 Controller rc{};
 CAN_RxHeaderTypeDef can1_rx_header;
 

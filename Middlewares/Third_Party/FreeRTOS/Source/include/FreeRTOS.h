@@ -399,7 +399,7 @@ hold explicit before calling the code. */
 #endif
 
 #ifndef configRECORD_STACK_HIGH_ADDRESS
-	#define configRECORD_STACK_HIGH_ADDRESS 1
+	#define configRECORD_STACK_HIGH_ADDRESS 0
 #endif
 
 #ifndef configINCLUDE_FREERTOS_TASK_C_ADDITIONS_H
