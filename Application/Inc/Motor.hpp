@@ -8,9 +8,9 @@ class Motor {
 public:
     enum class MotorType{ M3508 = 0, GM6020 = 1 };
     enum class ControlMethod { TORQUE = 0, SPEED = 1, POSITION_SPEED = 2 };
-
-private:
     const uint8_t can_id_;
+    
+private:
     const MotorType type_;
     const float ratio_;
     uint8_t *const tx_addr_;

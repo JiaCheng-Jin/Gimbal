@@ -51,7 +51,7 @@
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
-extern uint8_t rx_buffer[32];
+extern uint8_t controller_rx_buffer[32];
 CAN_FilterTypeDef filter1 = { .FilterIdHigh = 0x0000,
                               .FilterIdLow = 0x0000,
                               .FilterMaskIdHigh = 0x0000,
@@ -113,7 +113,7 @@ int main(void)
   /* USER CODE BEGIN 2 */
   bmi088_init();
   HAL_TIM_Base_Start_IT(&htim6);
-  HAL_UARTEx_ReceiveToIdle_DMA(&huart3, rx_buffer, 32);
+  HAL_UARTEx_ReceiveToIdle_DMA(&huart3, controller_rx_buffer, 32);
 
     HAL_CAN_ConfigFilter(&hcan1, &filter1);
     HAL_CAN_Start(&hcan1);

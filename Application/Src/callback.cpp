@@ -5,10 +5,14 @@
 #include "Motor.hpp"
 #include <cstring>
 
-uint8_t rx_buffer[32];
+uint8_t controller_rx_buffer[32];
+uint8_t can1_rx_buffer[8];
 
 IMU imu;
 Controller rc{};
+CAN_RxHeaderTypeDef can1_rx_header;
+
+extern Motor gimbal_yaw_motor, gimbal_pitch_motor;
 
 
 // void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef* htim) {
@@ -22,18 +26,22 @@ Controller rc{};
 void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef* huart, uint16_t Size) {
     if (huart == &huart3 && huart->RxEventType != HAL_UART_RXEVENT_HT) {
         if (Size == 18) {
-            memcpy(rc.rx_data, rx_buffer, 18 * sizeof(uint8_t));
+            memcpy(rc.rx_data, controller_rx_buffer, 18 * sizeof(uint8_t));
             rc.handle();
         }
-        HAL_UARTEx_ReceiveToIdle_DMA(huart, rx_buffer, 32);
+        HAL_UARTEx_ReceiveToIdle_DMA(huart, controller_rx_buffer, 32);
     }
 }
 
 void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef* hcan) {
     if (hcan == &hcan1) {
-        HAL_CAN_GetRxMessage(&hcan1, CAN_RX_FIFO0, &rx_header, rx_data);
-        if (rx_header.StdId == 0x204) {
-            motor.parse_can_msg_callback(rx_data);
+        HAL_CAN_GetRxMessage(&hcan1, CAN_RX_FIFO0, &can1_rx_header, can1_rx_buffer);
+        uint8_t id = can1_rx_header.StdId - 0x204;
+        if (id == gimbal_yaw_motor.can_id_) {
+            gimbal_yaw_motor.parse_can_msg_callback(can1_rx_buffer);
+        }
+        else if (id == gimbal_pitch_motor.can_id_) {
+            gimbal_pitch_motor.parse_can_msg_callback(can1_rx_buffer);
         }
     }
 }

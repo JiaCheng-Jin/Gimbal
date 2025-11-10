@@ -4,7 +4,6 @@
 #include "Controller.hpp"
 #include "can.h"
 #include "cmsis_os2.h"
-#include <cmath>
 
 extern Controller rc;
 extern bool stop_flag;
@@ -34,6 +33,12 @@ Motor gimbal_pitch_motor(2, Motor::MotorType::GM6020, 16.8f, m6020_1_4_tx_data,
     PID(0.022f, 0, 0.011f, 0, 3.f, 0.03));
 
 
+osThreadId_t mainTaskHandle;
+const osThreadAttr_t mainTask_attributes = {
+    .name = "mainTask",
+    .stack_size = 256 * 4,
+    .priority = (osPriority_t) osPriorityNormal,
+  };
 [[noreturn]] void main_task(void* params) {
     while (true) {
         // 根据遥控器控制电机
@@ -58,6 +63,11 @@ Motor gimbal_pitch_motor(2, Motor::MotorType::GM6020, 16.8f, m6020_1_4_tx_data,
         HAL_CAN_AddTxMessage(&hcan1, &m6020_1_4_tx_header, m6020_1_4_tx_data, &can_tx_mailbox);
         osDelay(1);
     }
+}
+
+
+void register_tasks() {
+    mainTaskHandle = osThreadNew(main_task, nullptr, &mainTask_attributes);
 }
 
 
