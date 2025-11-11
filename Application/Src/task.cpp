@@ -70,7 +70,7 @@ const osThreadAttr_t mainTask_attributes = {
 
 float r_imu[3][3] = {{1, 0, 0}, {0, 1, 0}, {0, 0, 1}};
 float gyro_bias[3] = {0, 0, 0};
-IMU imu(1, 0.5, 1, r_imu, gyro_bias);
+IMU imu(0.001, 0.5, 1, r_imu, gyro_bias);
 osThreadId_t imuTaskHandle;
 const osThreadAttr_t imuTask_attributes = {
     .name = "IMUTask",
@@ -81,7 +81,7 @@ const osThreadAttr_t imuTask_attributes = {
 [[noreturn]] void imu_task(void* params) {
     while (true) {
         imu.readSensor();
-        imu.update();
+        imu.update_mahony();
         osDelay(1);
     }
 }

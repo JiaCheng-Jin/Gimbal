@@ -1,5 +1,4 @@
 #include "imu.h"
-
 #include "arm_math.h"
 #include "bmi088.h"
 #include "cstring"
@@ -91,4 +90,19 @@ void IMU::update() {
     euler_rad_.yaw = yaw, euler_rad_.pitch = pitch, euler_rad_.roll = roll;
     euler_deg_.yaw = yaw / PI * 180.f, euler_deg_.pitch = pitch / PI * 180.f, euler_deg_.roll = roll / PI * 180.f;
 }
+
+// Mahony解算
+void IMU::update_mahony() {
+    mahony_.update(q_, gyro_sensor_, accel_sensor_);
+    memcpy(q_, mahony_.q_, 4 * sizeof(float));
+
+    euler_rad_.roll = atan2f(2 * (q_[0]*q_[1] + q_[2]*q_[3]), 1 - 2 * (q_[1]*q_[1]+q_[2]*q_[2]));
+    euler_rad_.pitch = asinf(2 * (q_[0]*q_[2] - q_[3]*q_[1]));
+    euler_rad_.yaw = atan2f(2 * (q_[0]*q_[3] + q_[1]*q_[2]), 1 - 2 * (q_[2]*q_[2]+q_[3]*q_[3]));
+
+    euler_deg_.roll = euler_rad_.roll / PI * 180.f;
+    euler_deg_.pitch = euler_rad_.pitch / PI * 180.f;
+    euler_deg_.yaw = euler_rad_.yaw / PI * 180.f;
+}
+
 

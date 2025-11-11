@@ -4,7 +4,7 @@
 
 #include "bmi088.h"
 #include <cmath>
-#include <SPI.h>
+#include <spi.h>
 
 #define PI 3.14159265358979
 

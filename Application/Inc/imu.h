@@ -32,6 +32,7 @@ public:
   void readSensor();
   // 利用线性互补滤波算法，上一时刻姿态角，加速度与角速度更新当前姿态角
   void update(void);
+    void update_mahony(void);
 
 public:
   // IMU 原始数据
