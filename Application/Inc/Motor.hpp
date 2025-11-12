@@ -32,10 +32,11 @@ private:
 public:
     Motor() = delete;
     explicit Motor(uint8_t __can_id, MotorType __type, float __ratio, uint8_t* __tx_data, PID&& __ppid, PID&& __spid);
+    void init(float init_angle);
     void set_position(float target_position);
     void set_speed(float target_speed);
     void set_intensity(float intensity);
-    float feedforward_intensity_calc(float current_angle);
+    void set_forward_intensity(float f_intensity);
     int16_t intensity_to_command() const;
     void parse_can_msg_callback(const uint8_t rx_data[8]);
     void handle();

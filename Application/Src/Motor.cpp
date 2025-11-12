@@ -1,6 +1,6 @@
 
 #include "Motor.hpp"
-#include "../../Algorithm/Inc/algorithm.hpp"
+#include "algorithm.hpp"
 #include "PID.hpp"
 #include <can.h>
 #include <cmath>
@@ -13,6 +13,9 @@ control_method_(ControlMethod::POSITION_SPEED),
 ppid_(__ppid),
 spid_(__spid) {}
 
+void Motor::init(float init_angle) {
+    fdb_angle_ = init_angle;
+}
 
 void Motor::parse_can_msg_callback(const uint8_t rx_data[8]) {
     // Get Current EncoderAngle, Map to [0, 360)
@@ -34,10 +37,10 @@ void Motor::parse_can_msg_callback(const uint8_t rx_data[8]) {
     last_ecd_angle_ = ecd_angle_;
     delta_angle_ = delta_ecd_angle_ / ratio_;
     fdb_angle_ += delta_angle_;
-    if (fdb_angle_ > 360) {
+    if (fdb_angle_ > 180) {
         fdb_angle_ -= 360;
     }
-    if (fdb_angle_ < 0) {
+    if (fdb_angle_ < -180) {
         fdb_angle_ += 360;
     }
 
@@ -68,10 +71,8 @@ void Motor::set_intensity(float intensity) {
     spid_.reset();
 }
 
-float Motor::feedforward_intensity_calc(float current_angle) {
-    float torque = 0.5f * 9.8 * 0.05524 * cosf((current_angle - 90) * 3.1415 / 180);
-    float current = torque / 3 * 8;
-    return current;
+void Motor::set_forward_intensity(float f_intensity) {
+    feedforward_intensity_ = f_intensity;
 }
 
 int16_t Motor::intensity_to_command() const {
@@ -89,7 +90,6 @@ int16_t Motor::intensity_to_command() const {
 }
 
 void Motor::handle() {
-    feedforward_intensity_ = feedforward_intensity_calc(fdb_angle_);
     switch (control_method_) {
         case ControlMethod::TORQUE: {
             break;

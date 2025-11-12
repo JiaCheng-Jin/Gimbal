@@ -27,12 +27,12 @@ CAN_TxHeaderTypeDef m6020_5_8_tx_header = {   .StdId = 0x2FE,
                                               .DLC = 8,
                                               .TransmitGlobalTime = DISABLE };
 
-Motor gimbal_yaw_motor(1, Motor::MotorType::GM6020, 16.8f, m6020_1_4_tx_data,
-    PID(198, 0.4, 57, 30, 3000, 0.05),
-    PID(0.022f, 0, 0.011f, 0, 3.f, 0.03));
-Motor gimbal_pitch_motor(2, Motor::MotorType::GM6020, 16.8f, m6020_1_4_tx_data,
-    PID(198, 0.4, 57, 30, 3000, 0.05),
-    PID(0.022f, 0, 0.011f, 0, 3.f, 0.03));
+Motor gimbal_yaw_motor(3, Motor::MotorType::GM6020, 1.f, m6020_1_4_tx_data,
+    PID(35, 0.4, 100, 50, 3000, 0.05),
+    PID(0.0012f, 0, 0.0006f, 0, 1.5f, 0.03));
+Motor gimbal_pitch_motor(1, Motor::MotorType::GM6020, 1.f, m6020_1_4_tx_data,
+    PID(35, 0.4, 100, 50, 3000, 0.05),
+    PID(0.0012f, 0, 0.0006f, 0, 1.5f, 0.03));
 
 
 osThreadId_t mainTaskHandle;
@@ -41,6 +41,19 @@ const osThreadAttr_t mainTask_attributes = {
     .stack_size = 256 * 4,
     .priority = (osPriority_t) osPriorityNormal,
   };
+
+/* IMU Task 相关变量 */
+float r_imu[3][3] = {{1, 0, 0}, {0, 1, 0}, {0, 0, 1}};
+float gyro_bias[3] = {0, 0, 0};
+IMU imu(0.001, 0.5, 1, r_imu, gyro_bias);
+osThreadId_t imuTaskHandle;
+const osThreadAttr_t imuTask_attributes = {
+    .name = "IMUTask",
+    .stack_size = 256 * 4,
+    .priority = (osPriority_t) osPriorityNormal,
+  };
+
+
 [[noreturn]] void main_task(void* params) {
     while (true) {
         HAL_IWDG_Refresh(&hiwdg);
@@ -57,6 +70,10 @@ const osThreadAttr_t mainTask_attributes = {
         if ( pitch_spd > -100 && pitch_spd < 100 ) {
             pitch_spd = 0;
         }
+        // Pitch轴软件限位
+        if ((imu.euler_deg_.pitch < -30 && pitch_spd < 0) || (imu.euler_deg_.pitch > 30 && pitch_spd > 0) ) {
+            pitch_spd = 0;
+        }
         gimbal_yaw_motor.set_speed(yaw_spd);
         gimbal_pitch_motor.set_speed(pitch_spd);
 
@@ -68,15 +85,41 @@ const osThreadAttr_t mainTask_attributes = {
     }
 }
 
-float r_imu[3][3] = {{1, 0, 0}, {0, 1, 0}, {0, 0, 1}};
-float gyro_bias[3] = {0, 0, 0};
-IMU imu(0.001, 0.5, 1, r_imu, gyro_bias);
-osThreadId_t imuTaskHandle;
-const osThreadAttr_t imuTask_attributes = {
-    .name = "IMUTask",
-    .stack_size = 256 * 4,
-    .priority = (osPriority_t) osPriorityNormal,
-  };
+[[noreturn]] void feedward_task(void* params) {
+    gimbal_pitch_motor.init(-30);
+    gimbal_pitch_motor.set_position(-30);
+    int16_t i = -30;
+    int32_t cnt = 0;
+    bool up = true;
+    while (true) {
+        HAL_IWDG_Refresh(&hiwdg);
+        
+        // 根据遥控器控制电机
+        const auto ctrl_frame = rc.data;
+        // 急停 + 速度控制
+        stop_flag = false;
+        
+        gimbal_yaw_motor.set_intensity(0);
+        if (cnt % 3000 == 0) {
+            if (up) {
+                if (++i == 30) {
+                    up = false;
+                }
+            }
+            else {
+                if (--i == -30) {
+                    up = true;
+                }
+            }
+            gimbal_pitch_motor.set_position(i);
+        }
+        gimbal_pitch_motor.handle();
+        ++cnt;
+        HAL_CAN_AddTxMessage(&hcan1, &m6020_1_4_tx_header, m6020_1_4_tx_data, &can_tx_mailbox);
+        osDelay(1);
+    }
+}
+
 
 [[noreturn]] void imu_task(void* params) {
     while (true) {
@@ -87,8 +130,8 @@ const osThreadAttr_t imuTask_attributes = {
 }
 
 void register_tasks() {
-    mainTaskHandle = osThreadNew(main_task, nullptr, &mainTask_attributes);
-    imuTaskHandle = osThreadNew(imu_task, nullptr, &imuTask_attributes);
+    mainTaskHandle = osThreadNew(feedward_task, nullptr, &mainTask_attributes);
+    //imuTaskHandle = osThreadNew(imu_task, nullptr, &imuTask_attributes);
 }
 
 

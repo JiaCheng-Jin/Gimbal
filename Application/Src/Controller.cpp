@@ -15,7 +15,7 @@ inline float linear_mapping(float value, float in_min, float in_max, float out_m
 
 Controller::Controller():
     rx_data { 0 },
-    data { 0, 0, 0, 0, Position::MID, Position::MID }
+    data { 0, 0, 0, 0, Position::DOWN, Position::DOWN }
     {}
 
 bool Controller::test_connection() const {
