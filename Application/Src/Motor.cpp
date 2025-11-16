@@ -15,6 +15,7 @@ spid_(__spid) {}
 
 void Motor::init(float init_angle) {
     fdb_angle_ = init_angle;
+    target_angle_ = init_angle;
 }
 
 void Motor::parse_can_msg_callback(const uint8_t rx_data[8]) {
@@ -78,7 +79,7 @@ void Motor::set_forward_intensity(float f_intensity) {
 int16_t Motor::intensity_to_command() const {
     switch (type_) {
         case MotorType::M3508: {
-            return clamp<int16_t>(output_intensity_ / 2 * 16384, -16384, 16384);
+            return clamp<int16_t>(output_intensity_ / 20 * 16384, -16384, 16384);
         }
         case MotorType::GM6020: {
             return clamp<int16_t>(output_intensity_ / 3 * 16384, -16384, 16384);

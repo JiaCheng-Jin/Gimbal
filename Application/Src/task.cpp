@@ -28,11 +28,11 @@ CAN_TxHeaderTypeDef m6020_5_8_tx_header = {   .StdId = 0x2FE,
                                               .TransmitGlobalTime = DISABLE };
 
 Motor gimbal_yaw_motor(3, Motor::MotorType::GM6020, 1.f, m6020_1_4_tx_data,
-    PID(35, 0.4, 100, 50, 3000, 0.05),
-    PID(0.0012f, 0, 0.0006f, 0, 1.5f, 0.03));
+    PID(60, 0.4, 80, 50, 3000, 0.05),
+    PID(0.0012f, 0, 0.0006f, 0, 2.5f, 0.03));
 Motor gimbal_pitch_motor(1, Motor::MotorType::GM6020, 1.f, m6020_1_4_tx_data,
-    PID(35, 0.4, 100, 50, 3000, 0.05),
-    PID(0.0012f, 0, 0.0006f, 0, 1.5f, 0.03));
+    PID(60, 0.4, 80, 50, 3000, 0.05),
+    PID(0.0012f, 0, 0.0006f, 0, 2.5f, 0.03));
 
 
 osThreadId_t mainTaskHandle;
@@ -87,7 +87,6 @@ const osThreadAttr_t imuTask_attributes = {
 
 [[noreturn]] void feedward_task(void* params) {
     gimbal_pitch_motor.init(-30);
-    gimbal_pitch_motor.set_position(-30);
     int16_t i = -30;
     int32_t cnt = 0;
     bool up = true;
