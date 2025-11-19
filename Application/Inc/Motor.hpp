@@ -13,6 +13,7 @@ public:
 private:
     const MotorType type_;
     const float ratio_;
+    const bool inverse = false;
     uint8_t *const tx_addr_;
     ControlMethod control_method_;
     PID ppid_, spid_;
@@ -31,7 +32,7 @@ private:
 
 public:
     Motor() = delete;
-    explicit Motor(uint8_t __can_id, MotorType __type, float __ratio, uint8_t* __tx_data, PID&& __ppid, PID&& __spid);
+    explicit Motor(uint8_t __can_id, MotorType __type, bool inverse, float __ratio, uint8_t* __tx_data, PID&& __ppid, PID&& __spid);
     void init(float init_angle);
     void set_position(float target_position);
     void set_speed(float target_speed);

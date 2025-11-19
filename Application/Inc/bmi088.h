@@ -1,7 +1,7 @@
 #ifndef BMI088_H
 #define BMI088_H
 
-#include <cstdint>
+#include "stdint.h"
 
 #ifdef __cplusplus
 extern "C" {

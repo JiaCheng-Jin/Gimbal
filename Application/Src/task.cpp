@@ -6,6 +6,7 @@
 #include "imu.h"
 #include "cmsis_os2.h"
 #include "iwdg.h"
+#include "algorithm.hpp"
 
 extern Controller rc;
 extern bool stop_flag;
@@ -27,13 +28,12 @@ CAN_TxHeaderTypeDef m6020_5_8_tx_header = {   .StdId = 0x2FE,
                                               .DLC = 8,
                                               .TransmitGlobalTime = DISABLE };
 
-Motor gimbal_yaw_motor(3, Motor::MotorType::GM6020, 1.f, m6020_1_4_tx_data,
-    PID(60, 0.4, 80, 50, 3000, 0.05),
-    PID(0.0012f, 0, 0.0006f, 0, 2.5f, 0.03));
-Motor gimbal_pitch_motor(1, Motor::MotorType::GM6020, 1.f, m6020_1_4_tx_data,
-    PID(60, 0.4, 80, 50, 3000, 0.05),
-    PID(0.0012f, 0, 0.0006f, 0, 2.5f, 0.03));
-
+Motor gimbal_yaw_motor(1, Motor::MotorType::GM6020, false,1.f, m6020_1_4_tx_data,
+    PID(8, 0.1, 30, 50, 320, 0.1),
+    PID(0.005f, 0, 0, 0, 2.5f, 0.03));
+Motor gimbal_pitch_motor(4, Motor::MotorType::GM6020, true, 1.f, m6020_1_4_tx_data,
+    PID(10, 0.1, 10, 50, 320, 0.04),
+    PID(0.005f, 0, 0, 0, 2.5f, 0.03));
 
 osThreadId_t mainTaskHandle;
 const osThreadAttr_t mainTask_attributes = {
@@ -55,27 +55,26 @@ const osThreadAttr_t imuTask_attributes = {
 
 
 [[noreturn]] void main_task(void* params) {
+		gimbal_pitch_motor.init(-30);
     while (true) {
         HAL_IWDG_Refresh(&hiwdg);
         // 根据遥控器控制电机
         const auto ctrl_frame = rc.data;
         // 急停 + 速度控制
         stop_flag = ctrl_frame.S2_ == Controller::Position::DOWN;
-        float yaw_spd = ctrl_frame.left_joystick_x_ * 1000;
-        float pitch_spd = ctrl_frame.left_joystick_y_ * 1000;
+        float yaw_pos = ctrl_frame.right_joystick_x_ * 175;
+        float pitch_pos = ctrl_frame.right_joystick_y_ * 25;
         // 死区设置
-        if (yaw_spd > -100 && yaw_spd < 100) {
-            yaw_spd = 0;
+        if (yaw_pos > -2 && yaw_pos < 2) {
+            yaw_pos = 0;
         }
-        if ( pitch_spd > -100 && pitch_spd < 100 ) {
-            pitch_spd = 0;
+        if ( pitch_pos > -2 && pitch_pos < 2 ) {
+            pitch_pos = 0;
         }
         // Pitch轴软件限位
-        if ((imu.euler_deg_.pitch < -30 && pitch_spd < 0) || (imu.euler_deg_.pitch > 30 && pitch_spd > 0) ) {
-            pitch_spd = 0;
-        }
-        gimbal_yaw_motor.set_speed(yaw_spd);
-        gimbal_pitch_motor.set_speed(pitch_spd);
+        pitch_pos = clamp<float>(pitch_pos, -25, 25);
+        gimbal_yaw_motor.set_position(yaw_pos);
+        gimbal_pitch_motor.set_position(pitch_pos);
 
         // 发送Can包
         gimbal_yaw_motor.handle();
@@ -85,21 +84,38 @@ const osThreadAttr_t imuTask_attributes = {
     }
 }
 
-[[noreturn]] void feedward_task(void* params) {
+[[noreturn]] void test_task(void* params) {
     gimbal_pitch_motor.init(-30);
+    stop_flag = false;
+    gimbal_yaw_motor.set_position(0);
+    gimbal_pitch_motor.set_position(-30);
+    while (true) {
+        HAL_IWDG_Refresh(&hiwdg);
+        
+        // 发送Can包
+        gimbal_yaw_motor.handle();
+        gimbal_pitch_motor.handle();
+        HAL_CAN_AddTxMessage(&hcan1, &m6020_1_4_tx_header, m6020_1_4_tx_data, &can_tx_mailbox);
+        osDelay(1);
+    }
+}
+
+[[noreturn]] void feedward_task(void* params) {
+    gimbal_pitch_motor.init(-28);
+    gimbal_pitch_motor.set_position(-28);
+
+    gimbal_pitch_motor.init(-150);
+    gimbal_pitch_motor.set_position(-150);
+
     int16_t i = -30;
     int32_t cnt = 0;
     bool up = true;
     while (true) {
         HAL_IWDG_Refresh(&hiwdg);
-        
         // 根据遥控器控制电机
-        const auto ctrl_frame = rc.data;
         // 急停 + 速度控制
         stop_flag = false;
-        
-        gimbal_yaw_motor.set_intensity(0);
-        if (cnt % 3000 == 0) {
+        if (cnt % 1500 == 0) {
             if (up) {
                 if (++i == 30) {
                     up = false;
@@ -110,8 +126,9 @@ const osThreadAttr_t imuTask_attributes = {
                     up = true;
                 }
             }
-            gimbal_pitch_motor.set_position(i);
+            gimbal_yaw_motor.set_position(i * 5);
         }
+        gimbal_yaw_motor.handle();
         gimbal_pitch_motor.handle();
         ++cnt;
         HAL_CAN_AddTxMessage(&hcan1, &m6020_1_4_tx_header, m6020_1_4_tx_data, &can_tx_mailbox);
@@ -129,8 +146,8 @@ const osThreadAttr_t imuTask_attributes = {
 }
 
 void register_tasks() {
-    mainTaskHandle = osThreadNew(feedward_task, nullptr, &mainTask_attributes);
-    //imuTaskHandle = osThreadNew(imu_task, nullptr, &imuTask_attributes);
+    mainTaskHandle = osThreadNew(main_task, nullptr, &mainTask_attributes);
+    imuTaskHandle = osThreadNew(imu_task, nullptr, &imuTask_attributes);
 }
 
 

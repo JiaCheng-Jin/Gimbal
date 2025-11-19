@@ -7,8 +7,8 @@
 
 bool stop_flag = true;
 
-Motor::Motor(uint8_t __can_id, MotorType __type, float __ratio, uint8_t *const __tx_data, PID&& __ppid, PID&& __spid):
-can_id_(__can_id), type_(__type),ratio_(__ratio), tx_addr_(__tx_data), 
+Motor::Motor(uint8_t __can_id, MotorType __type, bool inverse, float __ratio, uint8_t *const __tx_data, PID&& __ppid, PID&& __spid):
+can_id_(__can_id), type_(__type),ratio_(__ratio), inverse(inverse), tx_addr_(__tx_data), 
 control_method_(ControlMethod::POSITION_SPEED),
 ppid_(__ppid),
 spid_(__spid) {}
@@ -37,6 +37,9 @@ void Motor::parse_can_msg_callback(const uint8_t rx_data[8]) {
     // Accumulate Actual Angle
     last_ecd_angle_ = ecd_angle_;
     delta_angle_ = delta_ecd_angle_ / ratio_;
+    if (inverse) {
+        delta_angle_ = -delta_angle_;
+    }
     fdb_angle_ += delta_angle_;
     if (fdb_angle_ > 180) {
         fdb_angle_ -= 360;
@@ -47,29 +50,35 @@ void Motor::parse_can_msg_callback(const uint8_t rx_data[8]) {
 
     // Get other information
     fdb_speed_ = static_cast<int16_t>(rx_data[2] << 8 | rx_data[3]);
+    if (inverse) {
+        fdb_speed_ = -fdb_speed_;
+    }
     current_ = linear_mapping(static_cast<int16_t>(rx_data[4] << 8 | rx_data[5]), -16384, 16384, -20, 20);
+    if (inverse) {
+        current_ = -current_;
+    }
     temp_ = static_cast<float>(rx_data[6]);
 }
 
 void Motor::set_position(float target_position) {
     target_angle_ = target_position;
     control_method_ = ControlMethod::POSITION_SPEED;
-    ppid_.reset();
-    spid_.reset();
+    //ppid_.reset();
+    //spid_.reset();
 }
 
 void Motor::set_speed(float target_speed) {
     target_speed_ = target_speed;
     control_method_ = ControlMethod::SPEED;
-    ppid_.reset();
-    spid_.reset();
+    //ppid_.reset();
+    //spid_.reset();
 }
 
 void Motor::set_intensity(float intensity) {
     output_intensity_ = intensity;
     control_method_ = ControlMethod::TORQUE;
-    ppid_.reset();
-    spid_.reset();
+    //ppid_.reset();
+    //spid_.reset();
 }
 
 void Motor::set_forward_intensity(float f_intensity) {
@@ -102,6 +111,12 @@ void Motor::handle() {
         }
         case ControlMethod::POSITION_SPEED: {
             // 位置环
+            if (target_angle_ - fdb_angle_ > 180) {
+                target_angle_ -= 360;
+            }
+            else if (target_angle_ - fdb_angle_ < -180) {
+                target_angle_ += 360;
+            }
             target_speed_ = ppid_.calc(target_angle_, fdb_angle_) + feedforward_speed_;
             // 速度环
             output_intensity_ = spid_.calc(target_speed_, fdb_speed_) + feedforward_intensity_;
@@ -111,6 +126,9 @@ void Motor::handle() {
     // Protection
     if (stop_flag || fabsf(fdb_speed_) > 3000) {
         output_command = 0;
+    }
+    if (inverse) {
+        output_command = -output_command;
     }
     // CAN Message
     uint8_t high_byte = output_command >> 8;
