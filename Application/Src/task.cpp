@@ -28,11 +28,11 @@ CAN_TxHeaderTypeDef m6020_5_8_tx_header = {   .StdId = 0x2FE,
                                               .DLC = 8,
                                               .TransmitGlobalTime = DISABLE };
 
-Motor gimbal_yaw_motor(1, Motor::MotorType::GM6020, false,1.f, m6020_1_4_tx_data,
-    PID(8, 0.1, 100, 40, 320, 0.05),
+Motor gimbal_yaw_motor(3, Motor::MotorType::GM6020, false,1.f, m6020_1_4_tx_data,
+    PID(7, 0.1, 200, 40, 320, 0.05),
     PID(0.005f, 0, 0, 0, 2.5f, 0.03));
-Motor gimbal_pitch_motor(4, Motor::MotorType::GM6020, true, 1.f, m6020_1_4_tx_data,
-    PID(10, 0.1, 10, 50, 320, 0.04),
+Motor gimbal_pitch_motor(1, Motor::MotorType::GM6020, false, 1.f, m6020_1_4_tx_data,
+    PID(70, 0, 10, 50, 320, 0.04),
     PID(0.005f, 0, 0, 0, 2.5f, 0.03));
 
 osThreadId_t mainTaskHandle;
@@ -54,6 +54,7 @@ const osThreadAttr_t imuTask_attributes = {
   };
 
 
+/* Pitch 限位[-29, 20] */
 [[noreturn]] void main_task(void* params) {
 		gimbal_pitch_motor.init(-30);
     while (true) {
@@ -85,10 +86,10 @@ const osThreadAttr_t imuTask_attributes = {
 }
 
 [[noreturn]] void test_task(void* params) {
-    gimbal_pitch_motor.init(-30);
+    gimbal_pitch_motor.init(20);
     stop_flag = false;
     gimbal_yaw_motor.set_position(0);
-    gimbal_pitch_motor.set_position(-30);
+    gimbal_pitch_motor.set_position(20);
     while (true) {
         HAL_IWDG_Refresh(&hiwdg);
         
@@ -101,32 +102,30 @@ const osThreadAttr_t imuTask_attributes = {
 }
 
 [[noreturn]] void feedward_task(void* params) {
-    gimbal_pitch_motor.init(-28);
-    gimbal_pitch_motor.set_position(-28);
+    gimbal_pitch_motor.init(20);
+    gimbal_pitch_motor.set_position(20);
 
-    gimbal_pitch_motor.init(-150);
-    gimbal_pitch_motor.set_position(-150);
 
-    int16_t i = -30;
+    int16_t i = 20;
     int32_t cnt = 0;
-    bool up = true;
+    bool up = false;
     while (true) {
         HAL_IWDG_Refresh(&hiwdg);
         // 根据遥控器控制电机
         // 急停 + 速度控制
         stop_flag = false;
-        if (cnt % 1500 == 0) {
+        if (cnt % 15000 == 0) {
             if (up) {
-                if (++i == 30) {
+                if (++i == 20) {
                     up = false;
                 }
             }
             else {
-                if (--i == -30) {
+                if (--i == -29) {
                     up = true;
                 }
             }
-            gimbal_yaw_motor.set_position(i * 5);
+            gimbal_pitch_motor.set_position(i);
         }
         gimbal_yaw_motor.handle();
         gimbal_pitch_motor.handle();
@@ -146,7 +145,7 @@ const osThreadAttr_t imuTask_attributes = {
 }
 
 void register_tasks() {
-    mainTaskHandle = osThreadNew(main_task, nullptr, &mainTask_attributes);
+    mainTaskHandle = osThreadNew(test_task, nullptr, &mainTask_attributes);
     imuTaskHandle = osThreadNew(imu_task, nullptr, &imuTask_attributes);
 }
 

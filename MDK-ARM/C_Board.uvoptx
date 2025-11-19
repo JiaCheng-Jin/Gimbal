@@ -170,6 +170,16 @@
           <WinNumber>1</WinNumber>
           <ItemText>imu</ItemText>
         </Ww>
+        <Ww>
+          <count>4</count>
+          <WinNumber>1</WinNumber>
+          <ItemText>gimbal_pitch_motor.current_</ItemText>
+        </Ww>
+        <Ww>
+          <count>5</count>
+          <WinNumber>1</WinNumber>
+          <ItemText>gimbal_pitch_motor.fdb_angle_</ItemText>
+        </Ww>
       </WatchWindow1>
       <Tracepoint>
         <THDelay>0</THDelay>

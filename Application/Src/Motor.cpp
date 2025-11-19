@@ -10,8 +10,15 @@ bool stop_flag = true;
 Motor::Motor(uint8_t __can_id, MotorType __type, bool inverse, float __ratio, uint8_t *const __tx_data, PID&& __ppid, PID&& __spid):
 can_id_(__can_id), type_(__type),ratio_(__ratio), inverse(inverse), tx_addr_(__tx_data), 
 control_method_(ControlMethod::POSITION_SPEED),
-ppid_(__ppid),
-spid_(__spid) {}
+ppid_(__ppid), spid_(__spid)
+{
+    if (type_ == MotorType::GM6020) {
+        MAX_CURRENT = 3;
+    }
+    else if (type_ == MotorType::M3508) {
+        MAX_CURRENT = 20;
+    }
+}
 
 void Motor::init(float init_angle) {
     fdb_angle_ = init_angle;
@@ -53,7 +60,7 @@ void Motor::parse_can_msg_callback(const uint8_t rx_data[8]) {
     if (inverse) {
         fdb_speed_ = -fdb_speed_;
     }
-    current_ = linear_mapping(static_cast<int16_t>(rx_data[4] << 8 | rx_data[5]), -16384, 16384, -20, 20);
+    current_ = static_cast<int16_t>(rx_data[4] << 8 | rx_data[5]) * MAX_CURRENT / 16384;
     if (inverse) {
         current_ = -current_;
     }
@@ -80,17 +87,7 @@ void Motor::set_forward_intensity(float f_intensity) {
 }
 
 int16_t Motor::intensity_to_command() const {
-    switch (type_) {
-        case MotorType::M3508: {
-            return clamp<int16_t>(output_intensity_ / 20 * 16384, -16384, 16384);
-        }
-        case MotorType::GM6020: {
-            return clamp<int16_t>(output_intensity_ / 3 * 16384, -16384, 16384);
-        }
-        default: {
-            return 0;
-        }
-    }
+    return clamp<int16_t>(output_intensity_ / MAX_CURRENT * 16384, -16384, 16384);
 }
 
 void Motor::handle() {

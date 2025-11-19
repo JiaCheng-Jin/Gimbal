@@ -13,10 +13,11 @@ public:
 private:
     const MotorType type_;
     const float ratio_;
-    const bool inverse = false;
+    const bool inverse = false;                     // 顺时针为正方向时, inverse为false
     uint8_t *const tx_addr_;
     ControlMethod control_method_;
     PID ppid_, spid_;
+    float MAX_CURRENT;
 
     float delta_angle_ = 0;
     float ecd_angle_ = 0;
