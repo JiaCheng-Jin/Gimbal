@@ -29,7 +29,7 @@ CAN_TxHeaderTypeDef m6020_5_8_tx_header = {   .StdId = 0x2FE,
                                               .TransmitGlobalTime = DISABLE };
 
 Motor gimbal_yaw_motor(1, Motor::MotorType::GM6020, false,1.f, m6020_1_4_tx_data,
-    PID(8, 0.1, 30, 50, 320, 0.1),
+    PID(8, 0.1, 100, 40, 320, 0.05),
     PID(0.005f, 0, 0, 0, 2.5f, 0.03));
 Motor gimbal_pitch_motor(4, Motor::MotorType::GM6020, true, 1.f, m6020_1_4_tx_data,
     PID(10, 0.1, 10, 50, 320, 0.04),

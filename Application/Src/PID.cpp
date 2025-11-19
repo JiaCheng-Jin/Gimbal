@@ -26,6 +26,7 @@ float PID::calc(float ref, float fdb) {
     last_err_ = err_;
     err_ = ref_ - fdb_;
     err_sum_ += err_;
+    err_sum_ = clamp<float>(err_sum_, -500, 500);
     last_dout_ = dout_;
 
     // Calculate Output

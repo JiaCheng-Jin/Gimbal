@@ -63,22 +63,16 @@ void Motor::parse_can_msg_callback(const uint8_t rx_data[8]) {
 void Motor::set_position(float target_position) {
     target_angle_ = target_position;
     control_method_ = ControlMethod::POSITION_SPEED;
-    //ppid_.reset();
-    //spid_.reset();
 }
 
 void Motor::set_speed(float target_speed) {
     target_speed_ = target_speed;
     control_method_ = ControlMethod::SPEED;
-    //ppid_.reset();
-    //spid_.reset();
 }
 
 void Motor::set_intensity(float intensity) {
     output_intensity_ = intensity;
     control_method_ = ControlMethod::TORQUE;
-    //ppid_.reset();
-    //spid_.reset();
 }
 
 void Motor::set_forward_intensity(float f_intensity) {
