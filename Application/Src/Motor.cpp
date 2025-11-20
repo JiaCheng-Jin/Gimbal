@@ -90,7 +90,16 @@ int16_t Motor::intensity_to_command() const {
     return clamp<int16_t>(output_intensity_ / MAX_CURRENT * 16384, -16384, 16384);
 }
 
+void Motor::bind_feedforward_func(float (*funcPtr)(float)) {
+    feedforward_func = funcPtr;
+}
+
+
 void Motor::handle() {
+    // 计算前馈
+    if (feedforward_func != nullptr) {
+        feedforward_intensity_ = feedforward_func(fdb_angle_);
+    }
     switch (control_method_) {
         case ControlMethod::TORQUE: {
             break;

@@ -17,6 +17,7 @@ private:
     uint8_t *const tx_addr_;
     ControlMethod control_method_;
     PID ppid_, spid_;
+    float (*feedforward_func)(float) = nullptr;
     float MAX_CURRENT;
 
     float delta_angle_ = 0;
@@ -34,6 +35,7 @@ private:
 public:
     Motor() = delete;
     explicit Motor(uint8_t __can_id, MotorType __type, bool inverse, float __ratio, uint8_t* __tx_data, PID&& __ppid, PID&& __spid);
+    void bind_feedforward_func(float (*funcPtr)(float));
     void init(float init_angle);
     void set_position(float target_position);
     void set_speed(float target_speed);
