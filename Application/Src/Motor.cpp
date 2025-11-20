@@ -94,7 +94,6 @@ void Motor::bind_feedforward_func(float (*funcPtr)(float)) {
     feedforward_func = funcPtr;
 }
 
-
 void Motor::handle() {
     // 计算前馈
     if (feedforward_func != nullptr) {

@@ -8,6 +8,8 @@
 #include "iwdg.h"
 #include "algorithm.hpp"
 
+#include <cmath>
+
 extern Controller rc;
 extern bool stop_flag;
 
@@ -35,6 +37,11 @@ Motor gimbal_pitch_motor(1, Motor::MotorType::GM6020, false, 1.f, m6020_1_4_tx_d
     PID(70, 0, 10, 50, 320, 0.04),
     PID(0.005f, 0, 0, 0, 2.5f, 0.03));
 
+/* Pitch轴前馈计算函数 */
+float gimbal_pitch_feedforward(float angle) {
+    return 2.37f * sinf(0.02 * angle - 0.638) + 2.22 * sinf(0.033 * angle + 2.74);
+}
+
 osThreadId_t mainTaskHandle;
 const osThreadAttr_t mainTask_attributes = {
     .name = "mainTask",
@@ -56,24 +63,25 @@ const osThreadAttr_t imuTask_attributes = {
 
 /* Pitch 限位[-29, 20] */
 [[noreturn]] void main_task(void* params) {
-		gimbal_pitch_motor.init(-30);
+    gimbal_pitch_motor.init(20);
+    gimbal_pitch_motor.bind_feedforward_func(&gimbal_pitch_feedforward);
     while (true) {
         HAL_IWDG_Refresh(&hiwdg);
         // 根据遥控器控制电机
         const auto ctrl_frame = rc.data;
         // 急停 + 速度控制
         stop_flag = ctrl_frame.S2_ == Controller::Position::DOWN;
-        float yaw_pos = ctrl_frame.right_joystick_x_ * 175;
-        float pitch_pos = ctrl_frame.right_joystick_y_ * 25;
+        float yaw_pos = ctrl_frame.right_joystick_x_ * 180;
+        float pitch_pos = ctrl_frame.right_joystick_y_ * 20;
         // 死区设置
         if (yaw_pos > -2 && yaw_pos < 2) {
             yaw_pos = 0;
         }
-        if ( pitch_pos > -2 && pitch_pos < 2 ) {
+        if ( pitch_pos > -2 && pitch_pos < 2) {
             pitch_pos = 0;
         }
         // Pitch轴软件限位
-        pitch_pos = clamp<float>(pitch_pos, -25, 25);
+        pitch_pos = clamp<float>(pitch_pos, -20, 20);
         gimbal_yaw_motor.set_position(yaw_pos);
         gimbal_pitch_motor.set_position(pitch_pos);
 
@@ -87,12 +95,10 @@ const osThreadAttr_t imuTask_attributes = {
 
 [[noreturn]] void test_task(void* params) {
     gimbal_pitch_motor.init(20);
+    gimbal_pitch_motor.bind_feedforward_func(&gimbal_pitch_feedforward);
     stop_flag = false;
-    gimbal_yaw_motor.set_position(0);
-    gimbal_pitch_motor.set_position(20);
     while (true) {
         HAL_IWDG_Refresh(&hiwdg);
-        
         // 发送Can包
         gimbal_yaw_motor.handle();
         gimbal_pitch_motor.handle();
@@ -104,8 +110,6 @@ const osThreadAttr_t imuTask_attributes = {
 [[noreturn]] void feedward_task(void* params) {
     gimbal_pitch_motor.init(20);
     gimbal_pitch_motor.set_position(20);
-
-
     int16_t i = 20;
     int32_t cnt = 0;
     bool up = false;
