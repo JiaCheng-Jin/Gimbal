@@ -7,8 +7,8 @@
 
 bool stop_flag = true;
 
-Motor::Motor(uint8_t __can_id, MotorType __type, bool inverse, float __ratio, uint8_t *const __tx_data, PID&& __ppid, PID&& __spid):
-can_id_(__can_id), type_(__type),ratio_(__ratio), inverse(inverse), tx_addr_(__tx_data), 
+Motor::Motor(uint8_t __can_id, MotorType __type, bool __inverse, float __ratio, uint8_t *const __tx_data, PID&& __ppid, PID&& __spid):
+can_id_(__can_id), type_(__type),ratio_(__ratio), inverse(__inverse), tx_addr_(__tx_data), 
 control_method_(ControlMethod::POSITION_SPEED),
 ppid_(__ppid), spid_(__spid)
 {
